@@ -16,6 +16,7 @@ EXECUTABLE = supertinycron
 EXECUTABLE_TEST = ccronexpr_test
 SHARED = libccronexpr.so
 LDFLAGS = -shared -Wl,-soname,$(SHARED) -fPIC
+INSTALL_DIR = /usr/local/bin
 
 all: $(EXECUTABLE) $(EXECUTABLE_TEST)
 
@@ -30,6 +31,12 @@ $(EXECUTABLE): $(OBJECTS)
 
 $(EXECUTABLE_TEST): $(OBJECTS_TEST)
 	$(CC) $(CFLAGS) $(OBJECTS_TEST) -o $@
+
+install: $(EXECUTABLE)
+	cp $(EXECUTABLE) $(INSTALL_DIR)
+
+uninstall:
+	rm -f $(INSTALL_DIR)/$(EXECUTABLE)
 
 clean:
 	rm -f $(OBJECTS) $(OBJECTS_TEST) $(EXECUTABLE) $(EXECUTABLE_TEST) $(SHARED)

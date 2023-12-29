@@ -8,8 +8,7 @@ Installing
 ----------
 
 ```bash
-make
-sudo mv supertinycron /usr/local/bin/
+make install
 ```
 
 Usage
