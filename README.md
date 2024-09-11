@@ -51,7 +51,7 @@ Day of week    Yes          0-6 or SUN-SAT          * / , - L #
 Year           No           1970–2199               * / , -
 ```
 
-**Note:** In the 'Day of week' field, both 0 and 7 represent SAT, as referenced by [crontab's man page](http://linux.die.net/man/5/crontab#). The 'Year' field spans to 2199 as per [2], which differs from [1] where it's up to 2099. When `*` is used for year it should function well above year 2199. Depending on libc, it may function well above year 10000.
+**Note:** In the 'Day of week' field, both 0 and 7 represent SUN, as referenced by [crontab's man page](http://linux.die.net/man/5/crontab#). The 'Year' field spans to 2199 as per [2], which differs from [1] where it's up to 2099. When `*` is used for year it should function well above year 2199. Depending on libc, it may function well above year 10000.
 
 ### Special Characters
 
