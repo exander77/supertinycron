@@ -600,11 +600,11 @@ static int generate_field(char *dest, uint8_t *bits, int min, int max, int offse
         }
     }
     if (from == i - 1) {
-        if (first) first = 0; else STRCATC(dest, ",", 1);
+        if (!first) STRCATC(dest, ",", 1);
         STRCATC(dest, buf, sprintf(buf, "%d", from));
     } else if (from == min && i == max) STRCATC(dest, "*", 1);
     else if (from != -1) {
-        if (first) first = 0; else STRCATC(dest, ",", 1);
+        if (!first) STRCATC(dest, ",", 1);
         STRCATC(dest, buf, sprintf(buf, "%d-%d", from, i - 1));
     }
     return len;
@@ -664,6 +664,8 @@ int cron_generate_expr(cron_expr *source, char *buffer, int buffer_len, int cron
         }
     }
 #endif
+
+    (void)error;
     return len;
 }
 
