@@ -240,6 +240,7 @@ static void reset_max(struct tm* calendar, int field) {
     else if (CRON_CF_MINUTE       == field) set_field(calendar, field, CRON_MAX_MINUTES-1);
     else if (CRON_CF_HOUR_OF_DAY  == field) set_field(calendar, field, CRON_MAX_HOURS  -1);
     else if (CRON_CF_DAY_OF_MONTH == field) set_field(calendar, field, last_day_of_month(calendar->tm_mon, calendar->tm_year, 0));
+    else if (CRON_CF_MONTH        == field) set_field(calendar, field, CRON_MAX_MONTHS -1);
 }
 
 static void reset_all(void (*fn)(struct tm* calendar, int field), struct tm* calendar, uint8_t* fields) {
@@ -492,7 +493,10 @@ static void Fields(ParserContext* context, int len) {
  * Search the bits provided for the next/prev set bit after the value provided, and reset the calendar.
  */
 static int find_nextprev(uint8_t* bits, int max, int value, int value_offset, struct tm* calendar, int field, int nextField, uint8_t* lower_orders, int offset) {
-    int next_value = (offset > 0 ? next_set_bit(bits, max, value+value_offset) : prev_set_bit(bits, value+value_offset, 0))-value_offset;
+    int next_value = (offset > 0 ? next_set_bit(bits, max, value+value_offset) : prev_set_bit(bits, value+value_offset, 0));
+    if(next_value == -1 && field == CRON_CF_YEAR)
+        return -1;
+    next_value -= value_offset;
     /* roll under if needed */
     if (next_value < 0) {
         if (offset > 0) reset_max(calendar, field); else reset_min(calendar, field);
@@ -531,6 +535,13 @@ static int find_day(struct tm* calendar, uint8_t* days_of_month, int8_t* dim, in
     while (find_day_condition(calendar, days_of_month, dim, dom, days_of_week, dow, flags, &day) && count++ < max) {
         if (offset > 0) reset_all_min(calendar, resets) else reset_all_max(calendar, resets);
         add_to_field(calendar, CRON_CF_DAY_OF_MONTH, offset); MKTIME(calendar);
+
+        if(offset < 0 && (calendar->tm_year < CRON_MIN_YEARS - YEAR_OFFSET))
+            goto return_error;
+
+        if(offset > 0 && (calendar->tm_year > CRON_MAX_YEARS - YEAR_OFFSET))
+            goto return_error;
+
         dom = calendar->tm_mday;
         dow = calendar->tm_wday;
         if (year != calendar->tm_year) {
@@ -575,6 +586,7 @@ static int do_nextprev(cron_expr* expr, struct tm* calendar, int dot, int offset
         else break;
 #else
         if (cron_get_bit(expr->years, EXPR_YEARS_LENGTH*8-1)) break;
+        RF(CRON_CF_MONTH);  else continue;
         RI(CRON_CF_YEAR, expr->years, YEAR_OFFSET-CRON_MIN_YEARS, CRON_MAX_YEARS-CRON_MIN_YEARS, CRON_CF_NEXT);
         if (update_value < 0 || value == update_value) break;
 #endif

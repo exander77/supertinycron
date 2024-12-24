@@ -163,6 +163,25 @@ int count_fields(const char* str, char del) {
     return (int)count + 1;
 }
 
+#define check_invalid_instant(fn_fn,pattern,initial) check_fn_invalid_instant_line(fn_fn, pattern, initial, __LINE__)
+void check_fn_invalid_instant_line(cron_find_fn fn, const char* pattern, const char* initial, int line) {
+    const char* err = NULL;
+    const int len = count_fields(pattern, ' ');
+    cron_expr parsed1, parsed2;
+    /*printf("Pattern: %s\n", pattern);**/
+    cron_parse_expr(pattern, &parsed1, &err);
+
+    struct tm calinit;
+    poors_mans_strptime(initial, &calinit);
+    time_t dateinit = cron_mktime(&calinit);
+    assert(-1 != dateinit);
+    time_t datenext = fn(&parsed1, dateinit);
+    assert(datenext == CRON_INVALID_INSTANT);
+    printf("Line: %d\n", line);
+    printf("Pattern: %s\n", pattern);
+    printf("No prev/next for: %s\n", initial);
+}
+
 #define check_fn(fn_fn,pattern,initial,expected) check_fn_line(fn_fn, pattern, initial, expected, __LINE__)
 void check_fn_line(cron_find_fn fn, const char* pattern, const char* initial, const char* expected, int line) {
     const char* err = NULL;
@@ -618,6 +637,12 @@ void test_expr() {
     check_fn(cron_prev, "30 50 23 20,21,22 * *", "2023-07-21_12:34:56", "2023-07-20_23:50:30");
     check_fn(cron_prev, "30 50 23 20,21,22 * *", "2023-07-22_12:34:56", "2023-07-21_23:50:30");
     check_fn(cron_prev, "30 50 23 20,21,22 * *", "2023-07-23_12:34:56", "2023-07-22_23:50:30");
+    
+    check_fn(cron_prev, "30 50 23 20,21,22 * * 2023", "2024-07-23_12:34:56", "2023-12-22_23:50:30");
+    check_fn(cron_next, "30 50 23 20,21,22 * * 2023", "2022-07-23_12:34:56", "2023-01-20_23:50:30");
+    
+    check_invalid_instant(cron_prev, "30 50 23 20,21,22 * * 2023", "2022-07-23_12:34:56");
+    check_invalid_instant(cron_next, "30 50 23 20,21,22 * * 2023", "2024-07-23_12:34:56");
 }
 
 void test_parse() {
