@@ -591,7 +591,7 @@ static int do_nextprev(cron_expr* expr, struct tm* calendar, int dot, int offset
 }
 
 static int generate_field(char *dest, uint8_t *bits, int min, int max, int offset, int overflow, int buffer_len) {
-    char  buf[32];
+    char buf[33];
     int len = 0, first = 1, i, fs = -1, ls = -1, d = -1, n = 0, from, dt;
     for (i = min; i < max; i++) {
         if (cron_get_bit(bits, i + offset)) {
