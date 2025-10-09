@@ -213,6 +213,42 @@ void check_fn_line(cron_find_fn fn, const char* pattern, const char* initial, co
         printf("Actual: %s\n", buffer);
         assert(0);
     }
+    memset(buffer, 0, 512);
+    assert(cron_generate_expr(&parsed1, buffer, 512, len, &err) > 0);
+    if (0 != strcmp(pattern, buffer)) {
+        printf("Line: %d\n", line);
+        printf("Pattern: %s\n", pattern);
+        printf("Actual:  %s\n", buffer);
+    }
+    cron_parse_expr(buffer, &parsed2, &err);
+    assert(crons_equal(&parsed1, &parsed2));
+    free(buffer);
+}
+
+#define check_fn_t(fn_fn,pattern,initial,expected) check_fn_line_t(fn_fn, pattern, initial, expected, __LINE__)
+void check_fn_line_t(cron_find_fn fn, const char* pattern, time_t initial, time_t expected, int line) {
+    const char* err = NULL;
+    const int len = count_fields(pattern, ' ');
+    cron_expr parsed1, parsed2;
+    /*printf("Pattern: %s\n", pattern);**/
+    cron_parse_expr(pattern, &parsed1, &err);
+
+    time_t dateinit = initial;
+
+    assert(-1 != dateinit);
+    time_t datenext = fn(&parsed1, dateinit);
+    printf("parsed: %s\n", pattern);
+    if (expected != datenext) {
+        printf("Line:     %d\n", line);
+        printf("Pattern:  %s\n", pattern);
+        printf("Initial:  %ld\n", initial);
+        printf("Expected: %ld\n", expected);
+        printf("Actual:   %ld\n", datenext);
+        assert(0);
+    }
+
+    char* buffer = (char*) malloc(512);
+    memset(buffer, 0, 512);
     assert(cron_generate_expr(&parsed1, buffer, 512, len, &err) > 0);
     if (0 != strcmp(pattern, buffer)) {
         printf("Line: %d\n", line);
@@ -283,13 +319,6 @@ void check_expr_valid_line(const char* pattern, int line) {
 
 void test_expr() {
     char* tz = getenv("TZ");
-
-#ifdef CRON_USE_LOCAL_TIME
-    /* DST test */
-    if (tz && !strcmp("Europe/Prague", tz)) {
-        check_fn(cron_next, "2 * * * * *", "2024-03-31_01:59:02", "2024-03-31_03:00:02");
-    }
-#endif
 
     /*Test leap seconds
     check_fn(cron_next, "60 0 0 * * *", "2015-01-01_15:12:42", "2015-06-30_00:00:00");*/
@@ -876,6 +905,28 @@ void test_parse() {
     check_expr_valid("0 6,9,12,16,20,24 0 * 2,4,6,8,9,10 *");
 }
 
+void test_dst() {
+    /* We use an exact TZ to ensure the times are of import. */
+    putenv("TZ=America/Toronto");
+
+    check_fn(cron_next, "* 6-20 * * *", "2019-03-09_21:00:00", "2019-03-10_06:00:00");
+    check_fn(cron_next, "* 6-20 * * *", "2019-11-02_21:00:00", "2019-11-03_06:00:00");
+
+#ifdef CRON_USE_LOCAL_TIME
+    check_fn(cron_next, "* * * * *", "2019-03-10_01:59:59", "2019-03-10_03:00:00");
+#else
+    check_fn(cron_next, "* * * * *", "2019-03-10_01:59:59", "2019-03-10_02:00:00");
+#endif
+
+    check_fn(cron_next, "* 15 11 * * *", "2019-03-09_11:43:00", "2019-03-10_11:15:00");
+    check_fn(cron_next, "* * * 15W * *", "2010-03-06_15:12:42", "2010-03-15_00:00:00");
+
+    /* Be exact here to ensure we don't have date parsing issues
+       (i.e. which 2019-11-03_01:59:59 are we looking at) */
+    check_fn_t(cron_next, "* * * * * *", 1572760799, 1572760800);
+    check_fn_t(cron_next, "* * * * * *", 1572764399, 1572764400);
+}
+
 void test_bits() {
 
     uint8_t testbyte[8];
@@ -916,6 +967,9 @@ int main() {
     test_expr();
     test_parse();
     check_calc_invalid();
+
+    test_dst();
+
     printf("\nAll OK!\n");
     return 0;
 }

@@ -218,6 +218,11 @@ static int closest_weekday(int day_of_month, int month, int year) {
 
 static void set_field(struct tm* calendar, int field, int val) {
     *get_field_ptr(calendar, field) = val;
+#ifdef CRON_USE_LOCAL_TIME
+    /* Reset the isdst field to ensure we cross daylight savings time
+       boundaries correctly */
+    calendar->tm_isdst = -1;
+#endif
     /* Reset day of month after month change to it's maximum. */
     if (field == CRON_CF_MONTH) {
         val = last_day_of_month(calendar->tm_mon, calendar->tm_year, 0);
